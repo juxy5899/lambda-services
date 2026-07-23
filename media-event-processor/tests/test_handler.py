@@ -220,37 +220,21 @@ def test_create_mediaconvert_job_uses_public_key_basename_for_hls_destination(mo
     assert calls[0]["Settings"]["OutputGroups"][0]["Outputs"][0]["NameModifier"] == "_media"
 
 
-def test_mediaconvert_client_discovers_endpoint(monkeypatch):
-    """MediaConvert client 作成前に account 固有 endpoint を解決する。"""
+def test_mediaconvert_client_uses_regional_endpoint(monkeypatch):
+    """MediaConvert client は SDK 既定の regional endpoint を使用する。"""
     calls = []
-
-    class DiscoveryClient:
-        def describe_endpoints(self, **kwargs):
-            calls.append(("describe_endpoints", kwargs))
-            return {"Endpoints": [{"Url": "https://account.mediaconvert.ap-northeast-1.amazonaws.com"}]}
 
     class MediaConvertClient:
         pass
 
     def client(service_name, **kwargs):
         calls.append(("client", service_name, kwargs))
-        if "endpoint_url" in kwargs:
-            return MediaConvertClient()
-        return DiscoveryClient()
+        return MediaConvertClient()
 
     monkeypatch.setitem(sys.modules, "boto3", SimpleNamespace(client=client))
     monkeypatch.setattr(handler_module, "_mediaconvert_client", None)
-    monkeypatch.setattr(handler_module, "_mediaconvert_endpoint_url", None)
 
     result = handler_module._mediaconvert()
 
     assert isinstance(result, MediaConvertClient)
-    assert calls == [
-        ("client", "mediaconvert", {}),
-        ("describe_endpoints", {"MaxResults": 1}),
-        (
-            "client",
-            "mediaconvert",
-            {"endpoint_url": "https://account.mediaconvert.ap-northeast-1.amazonaws.com"},
-        ),
-    ]
+    assert calls == [("client", "mediaconvert", {})]

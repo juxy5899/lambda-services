@@ -6,7 +6,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-SYSTEM_USER = "system:event-processor"
+SYSTEM_USER = "system:media-event-processor"
 MEDIA_STATUS_PROCESSING = 1
 MEDIA_STATUS_PUBLISHED = 2
 MEDIA_STATUS_FAILED = 3
@@ -16,7 +16,6 @@ PENDING_JOB_ID = "PENDING"
 
 _s3_client = None
 _mediaconvert_client = None
-_mediaconvert_endpoint_url = None
 _secrets_client = None
 _db_secret: dict[str, Any] | None = None
 
@@ -410,28 +409,15 @@ def _s3() -> Any:
 
 
 def _mediaconvert() -> Any:
-    """MediaConvert endpoint を解決して client を遅延生成する。"""
+    """MediaConvert client を遅延生成して再利用する。"""
     global _mediaconvert_client
-    global _mediaconvert_endpoint_url
 
     if _mediaconvert_client is None:
         import boto3
 
-        if _mediaconvert_endpoint_url is None:
-            _mediaconvert_endpoint_url = _discover_mediaconvert_endpoint(boto3.client("mediaconvert"))
-        _mediaconvert_client = boto3.client("mediaconvert", endpoint_url=_mediaconvert_endpoint_url)
+        _mediaconvert_client = boto3.client("mediaconvert")
 
     return _mediaconvert_client
-
-
-def _discover_mediaconvert_endpoint(client: Any) -> str:
-    """MediaConvert の account 固有 endpoint URL を取得する。"""
-    response = client.describe_endpoints(MaxResults=1)
-    endpoints = response.get("Endpoints") or []
-    if not endpoints:
-        raise ValueError("MediaConvert endpoint was not returned")
-
-    return _required_string(endpoints[0].get("Url"), "MediaConvert endpoint URL")
 
 
 def _secretsmanager() -> Any:
