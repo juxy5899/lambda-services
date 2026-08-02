@@ -1,4 +1,4 @@
-from action_log_batch_controller.handler import handle_event
+from action_log_attributes_tsv_generator.handler import handle_event
 
 
 def handler(event, context):

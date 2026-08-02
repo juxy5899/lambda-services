@@ -3,10 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "action-log-batch-controller"
+name = "action-log-events-tsv-generator"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.2"]

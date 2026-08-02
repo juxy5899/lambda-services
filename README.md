@@ -10,7 +10,9 @@
 | `push-worker`                 | `app.handler`  | Worker SQS 消費・Push 送信・notice_only 処理・Aggregator SQS 結果送信                     | `PushProcessingStack`  |
 | `push-aggregator`             | `app.handler`  | Worker 結果集約・無効端末更新・配信結果更新                                               | `PushProcessingStack`  |
 | `execution-sweeper`           | `app.handler`  | 滞留 execution 検知・error / partial_success 収束                                         | `PushProcessingStack`  |
-| `action-log-batch-controller` | `app.handler`  | Athena Task A/B・MySQL 反映・Delivery TSV 生成・整合性確認                                | `ActionLogBatchStack`  |
+| `action-log-push-reflector` | `app.handler`  | Athena Task A の Push 開封結果を MySQL へ反映                                             | `ActionLogBatchStack`  |
+| `action-log-events-tsv-generator` | `app.handler` | Athena Task B の出力を単一 Events TSV gzip へ変換                                     | `ActionLogBatchStack`  |
+| `action-log-attributes-tsv-generator` | `app.handler` | MySQL 全量データから Attributes TSV gzip を生成                                      | `ActionLogBatchStack`  |
 
 ## Python プロジェクト方式
 
@@ -55,7 +57,7 @@ CDK Stack は業務ドメイン単位で分割する。Lambda 業務コードは
 | ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MediaProcessingStack` | `media-event-processor`                               | Media Event SQS/DLQ・EventBridge ルール・Media Processor Lambda・MediaConvert 権限・S3 権限・Aurora Secret 読み取り権限                     |
 | `PushProcessingStack`  | `push-worker`、`push-aggregator`、`execution-sweeper` | Worker SQS/DLQ、Aggregator SQS/DLQ、Worker Lambda、Aggregator Lambda、Sweeper Schedule、CloudWatch Alarm                                    |
-| `ActionLogBatchStack`  | `action-log-batch-controller`                         | EventBridge Schedule・Batch Controller Lambda・Athena 権限・Raw/Intermediate/Delivery S3 権限・Aurora Secret 読み取り権限・CloudWatch Alarm |
+| `ActionLogBatchStack`  | `action-log-push-reflector`、`action-log-events-tsv-generator`、`action-log-attributes-tsv-generator` | 2つの EventBridge Scheduler・2つの Step Functions Workflow・Athena・S3・Aurora 権限・SNS・CloudWatch Alarm |
 
 ### Artifact 接続
 
