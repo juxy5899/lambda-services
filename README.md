@@ -4,15 +4,12 @@
 
 ## サービス一覧
 
-| サービス                      | Lambda handler | 主要責務                                                                                  | 推奨 CDK Stack         |
+| サービス                      | Lambda handler | 主要責務                                                                                  | 所属 CDK Stack         |
 | ----------------------------- | -------------- | ----------------------------------------------------------------------------------------- | ---------------------- |
 | `media-event-processor`       | `app.handler`  | メディアアップロード処理・S3 公開・MediaConvert ジョブ送信・MediaConvert コールバック処理 | `MediaProcessingStack` |
-| `push-worker`                 | `app.handler`  | Worker SQS 消費・Push 送信・notice_only 処理・Aggregator SQS 結果送信                     | `PushProcessingStack`  |
-| `push-aggregator`             | `app.handler`  | Worker 結果集約・無効端末更新・配信結果更新                                               | `PushProcessingStack`  |
-| `execution-sweeper`           | `app.handler`  | 滞留 execution 検知・error / partial_success 収束                                         | `PushProcessingStack`  |
-| `action-log-push-reflector` | `app.handler`  | Athena Task A の Push 開封結果を MySQL へ反映                                             | `ActionLogBatchStack`  |
-| `action-log-events-tsv-generator` | `app.handler` | Athena Task B の出力を単一 Events TSV gzip へ変換                                     | `ActionLogBatchStack`  |
-| `action-log-attributes-tsv-generator` | `app.handler` | MySQL 全量データから Attributes TSV gzip を生成                                      | `ActionLogBatchStack`  |
+| `push-worker`                 | `app.handler`  | Worker SQS 消費・End User Messaging への Push 送信・Aggregator SQS 結果送信               | `PushNotificationStack` |
+| `push-aggregator`             | `app.handler`  | Worker 結果集約・配信実行結果更新・無効端末更新                                           | `PushNotificationStack` |
+| `timeout-monitor`             | `app.handler`  | CSV 取込タスク・配信実行のタイムアウト判定、繰り返し送信の終了処理                        | `PushNotificationStack` |
 
 ## Python プロジェクト方式
 
@@ -53,11 +50,10 @@ python -m pytest
 
 CDK Stack は業務ドメイン単位で分割する。Lambda 業務コードは独立リポジトリでビルドした artifact を使用し、CDK Stack は AWS リソース・権限・イベントソース・環境変数・監視を担当する。
 
-| Stack                  | 所属 Lambda                                           | 主要 AWS リソース                                                                                                                           |
-| ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MediaProcessingStack` | `media-event-processor`                               | Media Event SQS/DLQ・EventBridge ルール・Media Processor Lambda・MediaConvert 権限・S3 権限・Aurora Secret 読み取り権限                     |
-| `PushProcessingStack`  | `push-worker`、`push-aggregator`、`execution-sweeper` | Worker SQS/DLQ、Aggregator SQS/DLQ、Worker Lambda、Aggregator Lambda、Sweeper Schedule、CloudWatch Alarm                                    |
-| `ActionLogBatchStack`  | `action-log-push-reflector`、`action-log-events-tsv-generator`、`action-log-attributes-tsv-generator` | 2つの EventBridge Scheduler・2つの Step Functions Workflow・Athena・S3・Aurora 権限・SNS・CloudWatch Alarm |
+| Stack                   | 所属 Lambda                                            | 主要 AWS リソース                                                                                                                          |
+| ----------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MediaProcessingStack`  | `media-event-processor`                                | Media Event SQS/DLQ・EventBridge ルール・Media Processor Lambda・MediaConvert 権限・S3 権限・Aurora Secret 読み取り権限                    |
+| `PushNotificationStack` | `push-worker`、`push-aggregator`、`timeout-monitor`    | Dispatch SQS/DLQ、Worker SQS/DLQ、Aggregator SQS/DLQ、Worker/Aggregator/timeout-monitor Lambda、EventBridge Scheduler グループ、CloudWatch Alarm |
 
 ### Artifact 接続
 
@@ -90,7 +86,7 @@ Lambda artifact のみ更新する場合は、対象 Lambda を含む Stack だ�
 
 ```bash
 npx cdk deploy MTI-dev-MediaProcessingStack -c env=dev
-npx cdk deploy MTI-dev-PushProcessingStack -c env=dev
+npx cdk deploy MTI-dev-PushNotificationStack -c env=dev
 npx cdk deploy MTI-dev-ActionLogBatchStack -c env=dev
 ```
 
